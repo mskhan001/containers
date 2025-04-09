@@ -5,3 +5,5 @@
 *.exe
 *.out
 *.a
+Widget/prog
+stack/prog
