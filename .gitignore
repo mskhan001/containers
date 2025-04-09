@@ -1,0 +1,7 @@
+# Compiled object files
+**/*.o
+
+# Other common ignores (optional)
+*.exe
+*.out
+*.a
