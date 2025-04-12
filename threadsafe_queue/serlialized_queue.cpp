@@ -86,10 +86,3 @@ private:
     mutable std::mutex m_;
     std::condition_variable cv_;
 };
-
-int main()
-{
-    threadsafe_queue<int> q;
-    if (q.empty())
-        ;
-}
