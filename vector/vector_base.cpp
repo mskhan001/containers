@@ -5,8 +5,8 @@ public:
   using AllocatorTraits = std::allocator_traits<Alloc>;
 
   vector_base(size_t capacity, const Alloc &alloca = Alloc())
-      : alloca_(alloca), start_(AllocatorTraits::allocate(alloca_, capacity)),
-        end_(start_), capacity_(start_ + capacity) {}
+      : alloca_(alloca), start_(AllocatorTraits::allocate(alloca_, capacity)), end_(start_),
+        capacity_(start_ + capacity) {}
 
   vector_base() : start_(nullptr), end_(nullptr), capacity_(nullptr) {}
 
@@ -68,26 +68,28 @@ public:
   }
 
   /* copies from [src_start, src_end) to memory beginning from dst*/
-  void uninitialized_copy(T *src_start, T *src_end, T *dst) {
+  void uninitialized_copy(T *src_start, T *src_end, T *dst_start) {
+    T *dst = dst_start;
     T *src = src_start;
     try {
       for (; src != src_end; ++src, ++dst)
         AllocatorTraits::construct(alloca_, dst, *src);
     } catch (...) {
-      for (T *q = start_; q != dst; ++q)
+      for (T *q = dst_start; q != dst; ++q)
         AllocatorTraits::destroy(alloca_, q);
       throw;
     }
   }
 
   /* moves from [src_start, src_end) to memory beginning from dst*/
-  void uninitialized_move(T *src_start, T *src_end, T *dst) {
+  void uninitialized_move(T *src_start, T *src_end, T *dst_start) {
+    T *dst = dst_start;
     T *src = src_start;
     try {
       for (; src != src_end; ++src, ++dst)
         AllocatorTraits::construct(alloca_, dst, std::move(*src));
     } catch (...) {
-      for (T *q = start_; q != dst; ++q)
+      for (T *q = dst_start; q != dst; ++q)
         AllocatorTraits::destroy(alloca_, q);
     }
   }
