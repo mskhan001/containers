@@ -1,122 +1,79 @@
-#include <utility>
-#include <iostream>
-#include "stack_impl.cpp"
+#include "stack_base.cpp"
 
-template <typename T>
-class stack : private stack_impl<T>
-{
+template <typename T> class stack {
 public:
-    stack(size_t size = 0) : stack_impl<T>(size) {}
+  stack(size_t capacity = 16) : stack_base_(capacity) {}
 
-    // copy construtor
-    stack(const stack &oth) : stack_impl<T>(oth.size_)
-    {
-        while (count() < oth.count())
-            push(oth.v_[count()]);
-    }
+  // copy constructor
+  stack(const stack &oth) : stack_base_(oth.stack_base_.capacity()) {
+    stack_base_.uninitialized_copy(oth.stack_base_.start_, oth.stack_base_.end_,
+                                   stack_base_.start_);
+    stack_base_.end_ = stack_base_.start_ + oth.stack_base_.size();
+  }
 
-    // copy assignment
-    stack &operator=(const stack &oth)
-    {
-        if (this != &oth)
-        {
-            stack temp(oth);
-            swap(*this, temp);
-        }
-        return *this;
-    }
+  // copy assignment
+  stack &operator=(const stack &oth) {
+    // copy-and-swap idiom
+    stack tmp(oth);   // copy
+    swap(*this, tmp); // swap
+    return *this;
+  }
 
-    // move constructor
-    stack(stack &&oth) noexcept : stack_impl<T>(0)
-    {
-        swap(*this, oth);
-    }
+  // move constructor
+  stack(stack &&oth) noexcept : stack_base_(std::move(oth.stack_base_)) {}
 
-    // move assignment
-    stack &operator=(stack &&oth) noexcept
-    {
-        if (this != &oth)
-        {
-            stack<T> temp(std::move(oth));
-            swap(*this, temp);
-        }
-        return *this;
-    }
+  // move assignment
+  stack &operator=(stack &&oth) noexcept {
+    // move-and-swap idiom
+    stack tmp(std::move(oth)); // move
+    swap(*this, tmp);          // swap
+    return *this;
+  }
 
-    friend void swap(stack &lhs, stack &rhs)
-    {
-        std::swap(lhs.v_, rhs.v_);
-        std::swap(lhs.size_, rhs.size_);
-        std::swap(lhs.used_, rhs.used_);
-    }
+  // destructor
+  ~stack() { stack_base_.destroy_range(stack_base_.start_, stack_base_.end_); }
 
-    template <typename... Args>
-    void push(const Args &...args)
-    {
-        if (this->size_ == this->used_)
-        {
-            stack temp(this->size_ * 2 + 1);
+  void push(const T &val) {
+    if (full())
+      throw "empty stack";
 
-            while (temp.count() < this->used_)
-                temp.push(this->v_[temp.count()]);
-            temp.push(args...);
-            swap(*this, temp);
-        }
-        else
-        {
-            this->v_[this->used_] = T(args...);
-            ++(this->used_);
-        }
-    }
+    stack_base_.construct(stack_base_.end_, val);
+    ++stack_base_.end_;
+  }
 
-    void pop()
-    {
-        if (0 == count())
-            throw "empty stack";
-        stack_impl<T>::destroy(this->v_ + this->used_);
-        --(this->used_);
-    }
+  void pop() {
+    if (empty())
+      throw "empty stack";
+    stack_base_.destroy(stack_base_.end_ - 1);
+    --stack_base_.end_;
+  }
 
-    const T &top()
-    {
-        if (empty())
-            throw "empty stack";
+  T &top() {
+    if (empty())
+      throw "empty stack";
 
-        return this->v_[this->used_ - 1];
-    }
+    return *(stack_base_.end_ - 1);
+  }
 
-    size_t count() const noexcept { return this->used_; };
+  const T &top() const {
+    if (empty())
+      throw "empty stack";
 
-    size_t capacity() noexcept { return this->size_; };
+    return *(stack_base_.end_ - 1);
+  }
 
-    bool empty() const noexcept { return this->used_ == 0; };
-    bool full() const noexcept { return this->used_ == this->size_; };
+  friend void swap(stack<T> &lhs, stack<T> &rhs) {
+    using std::swap;
+    swap(lhs.stack_base_, rhs.stack_base_);
+  }
 
-    // required for BOOST testing
-    friend bool operator==(const stack &lhs, const stack &rhs)
-    {
-        if (lhs.count() != rhs.count())
-            return false;
+  size_t count() const noexcept { return stack_base_.size(); }
+  size_t size() const noexcept { return stack_base_.size(); }
+  size_t capacity() const noexcept { return stack_base_.capacity(); }
 
-        for (size_t i = 0; i < lhs.count(); ++i)
-        {
-            if (lhs.v_[i] != rhs.v_[i])
-                return false;
-        }
-        return true;
-    }
+  bool empty() const noexcept { return stack_base_.empty(); }
+  bool full() const noexcept { return stack_base_.full(); }
 
-    // required for BOOST testing
-    friend std::ostream &operator<<(std::ostream &os, const stack &s)
-    {
-        os << "stack(";
-        for (size_t i = 0; i < s.count(); ++i)
-        {
-            os << s.v_[i];
-            if (i < s.count() - 1)
-                os << ", ";
-        }
-        os << ")";
-        return os;
-    }
+private:
+  stack_base<T> stack_base_;
 };

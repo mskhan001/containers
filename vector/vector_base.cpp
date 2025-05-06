@@ -91,6 +91,7 @@ public:
     } catch (...) {
       for (T *q = dst_start; q != dst; ++q)
         AllocatorTraits::destroy(alloca_, q);
+      throw;
     }
   }
 
